@@ -1,40 +1,299 @@
--- UNIVERSAL ROBLOX AIMBOT
--- PC + Mobile
+--------------------------------------------------
+-- LOAD SCREEN
+--------------------------------------------------
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
 
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
+local LoadGui = Instance.new("ScreenGui",game.CoreGui)
+LoadGui.IgnoreGuiInset=true
+LoadGui.ResetOnSpawn=false
 
--- ================== SETTINGS WITH SAVE ==================
-local SettingsFile = "UniversalAimbot_Settings.json"
+local BG=Instance.new("Frame",LoadGui)
+BG.Size=UDim2.new(1,0,1,0)
+BG.BackgroundColor3=Color3.fromRGB(12,12,15)
 
-local DefaultSettings = {
-    AimbotEnabled = true,
-    TeamCheck = true,
-    AimPart = "Head",
-    FOVRadius = 250,
-    Smoothness = 0.25,
-    DrawFOV = true,
-    FOVColor = Color3.fromRGB(255, 0, 100)
+local TitleLoad=Instance.new("TextLabel",BG)
+TitleLoad.Size=UDim2.new(1,0,0,60)
+TitleLoad.Position=UDim2.new(0,0,.4,0)
+TitleLoad.BackgroundTransparency=1
+TitleLoad.Text="Universal aimbot"
+TitleLoad.Font=Enum.Font.GothamBlack
+TitleLoad.TextScaled=true
+TitleLoad.TextColor3=Color3.fromRGB(255,80,80)
+
+local BarBG=Instance.new("Frame",BG)
+BarBG.AnchorPoint=Vector2.new(.5,.5)
+BarBG.Position=UDim2.new(.5,0,.55,0)
+BarBG.Size=UDim2.new(0,320,0,16)
+BarBG.BackgroundColor3=Color3.fromRGB(35,35,40)
+Instance.new("UICorner",BarBG)
+
+local Fill=Instance.new("Frame",BarBG)
+Fill.Size=UDim2.new(0,0,1,0)
+Fill.BackgroundColor3=Color3.fromRGB(255,80,80)
+Instance.new("UICorner",Fill)
+
+for i=1,5 do
+	TweenService:Create(Fill,TweenInfo.new(.45),{
+		Size=UDim2.new(i/5,0,1,0)
+	}):Play()
+	task.wait(.5)
+end
+
+TweenService:Create(BG,TweenInfo.new(.5),{BackgroundTransparency=1}):Play()
+task.wait(.6)
+LoadGui:Destroy()
+
+--------------------------------------------------
+-- SERVICES
+--------------------------------------------------
+
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
+local UIS=game:GetService("UserInputService")
+local Camera=workspace.CurrentCamera
+local LocalPlayer=Players.LocalPlayer
+
+--------------------------------------------------
+-- SETTINGS
+--------------------------------------------------
+
+local Settings={
+	Enabled=true,
+	TeamCheck=true,
+	WallCheck=true,
+	DrawFOV=true,
+	Legit=false,
+	FOV=200,
+	Smooth=0.2,
+	AimPart="Head"
 }
 
-local Settings = {}
+--------------------------------------------------
+-- GUI
+--------------------------------------------------
 
-local function LoadSettings()
-    if isfile(SettingsFile) then
-        local success, data = pcall(function()
-            return HttpService:JSONDecode(readfile(SettingsFile))
-        end)
-        if success then
-            Settings = data
-            if Settings.FOVColor and typeof(Settings.FOVColor) == "table" then
-                Settings.FOVColor = Color3.fromRGB(Settings.FOVColor.R, Settings.FOVColor.G, Settings.FOVColor.B)
-            end
+local gui=Instance.new("ScreenGui",game.CoreGui)
+gui.ResetOnSpawn=false
+
+local Main=Instance.new("Frame",gui)
+Main.Size=UDim2.new(0,380,0,430)
+Main.Position=UDim2.new(.5,-190,.5,-215)
+Main.BackgroundColor3=Color3.fromRGB(22,22,26)
+Main.Active=true
+Instance.new("UICorner",Main)
+
+local Title=Instance.new("TextLabel",Main)
+Title.Size=UDim2.new(1,0,0,40)
+Title.BackgroundTransparency=1
+Title.Text="AIMBOT HUB"
+Title.Font=Enum.Font.GothamBlack
+Title.TextScaled=true
+Title.TextColor3=Color3.fromRGB(255,80,80)
+
+--------------------------------------------------
+-- TABS
+--------------------------------------------------
+
+local function Tab(txt,x)
+	local b=Instance.new("TextButton",Main)
+	b.Size=UDim2.new(.5,0,0,30)
+	b.Position=UDim2.new(x,0,0,40)
+	b.Text=txt
+	b.BackgroundColor3=Color3.fromRGB(35,35,40)
+	b.TextScaled=true
+	Instance.new("UICorner",b)
+	return b
+end
+
+local TabMain=Tab("MAIN",0)
+local TabLegit=Tab("LEGIT",.5)
+
+local PageMain=Instance.new("Frame",Main)
+PageMain.Size=UDim2.new(1,0,1,-70)
+PageMain.Position=UDim2.new(0,0,0,70)
+PageMain.BackgroundTransparency=1
+
+local PageLegit=PageMain:Clone()
+PageLegit.Parent=Main
+PageLegit.Visible=false
+
+--------------------------------------------------
+-- TOGGLES
+--------------------------------------------------
+
+local function Toggle(parent,text,y,default,callback)
+	local b=Instance.new("TextButton",parent)
+	b.Size=UDim2.new(.9,0,0,35)
+	b.Position=UDim2.new(.05,0,0,y)
+	b.Text=""
+	b.BackgroundColor3=Color3.fromRGB(50,50,55)
+	Instance.new("UICorner",b)
+
+	local state=default
+
+	local lbl=Instance.new("TextLabel",b)
+	lbl.Size=UDim2.new(1,0,1,0)
+	lbl.BackgroundTransparency=1
+	lbl.TextScaled=true
+	lbl.Font=Enum.Font.GothamBold
+
+	local function refresh()
+		lbl.Text=(state and "✓ " or "✕ ")..text
+		b.BackgroundColor3=state and Color3.fromRGB(0,170,100) or Color3.fromRGB(60,60,65)
+	end
+
+	refresh()
+
+	b.MouseButton1Click:Connect(function()
+		state=not state
+		refresh()
+		callback(state)
+	end)
+end
+
+Toggle(PageMain,"Aimbot",10,true,function(v)Settings.Enabled=v end)
+Toggle(PageMain,"TeamCheck",50,true,function(v)Settings.TeamCheck=v end)
+Toggle(PageMain,"WallCheck",90,true,function(v)Settings.WallCheck=v end)
+Toggle(PageMain,"Draw FOV",130,true,function(v)Settings.DrawFOV=v end)
+Toggle(PageLegit,"Legit Mode",10,false,function(v)Settings.Legit=v end)
+
+--------------------------------------------------
+-- TAB SWITCH
+--------------------------------------------------
+
+TabMain.MouseButton1Click:Connect(function()
+	PageMain.Visible=true
+	PageLegit.Visible=false
+end)
+
+TabLegit.MouseButton1Click:Connect(function()
+	PageMain.Visible=false
+	PageLegit.Visible=true
+end)
+
+--------------------------------------------------
+-- DRAG
+--------------------------------------------------
+
+local drag=false
+local startPos,startFrame
+
+Title.InputBegan:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.MouseButton1 then
+		drag=true
+		startPos=i.Position
+		startFrame=Main.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(i)
+	if drag and i.UserInputType==Enum.UserInputType.MouseMovement then
+		local delta=i.Position-startPos
+		Main.Position=UDim2.new(
+			startFrame.X.Scale,
+			startFrame.X.Offset+delta.X,
+			startFrame.Y.Scale,
+			startFrame.Y.Offset+delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.MouseButton1 then
+		drag=false
+	end
+end)
+
+--------------------------------------------------
+-- MINIMIZE
+--------------------------------------------------
+
+local Open=Instance.new("TextButton",gui)
+Open.Size=UDim2.new(0,120,0,40)
+Open.Position=UDim2.new(0,20,1,-60)
+Open.Text="OPEN HUB"
+Open.Visible=false
+Open.BackgroundColor3=Color3.fromRGB(255,80,80)
+Instance.new("UICorner",Open)
+
+local Min=Instance.new("TextButton",Main)
+Min.Size=UDim2.new(0,30,0,25)
+Min.Position=UDim2.new(1,-35,0,5)
+Min.Text="-"
+Min.BackgroundColor3=Color3.fromRGB(255,80,80)
+Instance.new("UICorner",Min)
+
+Min.MouseButton1Click:Connect(function()
+	Main.Visible=false
+	Open.Visible=true
+end)
+
+Open.MouseButton1Click:Connect(function()
+	Main.Visible=true
+	Open.Visible=false
+end)
+
+--------------------------------------------------
+-- FOV
+--------------------------------------------------
+
+local circle=Drawing.new("Circle")
+circle.Filled=false
+circle.Thickness=2
+
+--------------------------------------------------
+-- AIMBOT
+--------------------------------------------------
+
+local function getClosest()
+	local closest=nil
+	local shortest=math.huge
+	local center=Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)
+
+	for _,plr in pairs(Players:GetPlayers()) do
+		if plr~=LocalPlayer then
+			local char=plr.Character
+			local hum=char and char:FindFirstChild("Humanoid")
+			if hum and hum.Health>0 then
+				local part=char:FindFirstChild("Head")
+				if part then
+					local pos,onScreen=Camera:WorldToViewportPoint(part.Position)
+					if onScreen then
+						local dist=(Vector2.new(pos.X,pos.Y)-center).Magnitude
+						if dist<shortest and dist<=Settings.FOV then
+							shortest=dist
+							closest=part
+						end
+					end
+				end
+			end
+		end
+	end
+	return closest
+end
+
+RunService.RenderStepped:Connect(function()
+
+	circle.Visible=Settings.DrawFOV
+	circle.Position=Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)
+	circle.Radius=Settings.FOV
+
+	if not Settings.Enabled then return end
+
+	local target=getClosest()
+	if target then
+		local goal=CFrame.new(Camera.CFrame.Position,target.Position)
+
+		if Settings.Legit then
+			Camera.CFrame=Camera.CFrame:Lerp(goal,Settings.Smooth*0.5)
+		else
+			Camera.CFrame=Camera.CFrame:Lerp(goal,Settings.Smooth)
+		end
+	end
+end)
+
+print("Aimbot HUB FULL Loaded ✅")            end
             return
         end
     end
@@ -351,4 +610,4 @@ end)
 MainFrame.Size = UDim2.new(0,0,0,0)
 TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Size = UDim2.new(0, 400, 0, 550)}):Play()
 
-print("Universal Aimbot + GUI Loaded! Drag the title bar to move.")
+print("Universal Aimbot + GUI Loaded!")
